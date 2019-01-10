@@ -1,11 +1,4 @@
-﻿/*     Bugs that gotta be fixed  
- * --- ( a very small subset ) --- */
-
-// Sometimes when lookForWall is pressed when the player is on the wall, he shoots off 
-// in the opposite direction. I think it's an issue with the colliders on the player and the wall.
-// Maybe try putting in some buffer for snapping to the wall
-
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -69,13 +62,7 @@ public class PlayerControls : MonoBehaviour {
 	private const KeyCode stageSpecialCode1 = KeyCode.R;
 	private const KeyCode stageSpecialCode2 = KeyCode.T;
 	
-	/* Tree spawning */
-	private GameObject spawnedTree;
-	private bool spawningTree = false; // Whether we are in the process of spawning a tree
-	private float heightAdded; // Total movement from the initial spawn position
-	private float spawnTreeDeltaPos = 0.03f; // Amount to move tree by at each update step
-	private float updateTick = 0.01f; // Update position each updateTick seconds
-	private float thisTick; // like a counter. Compare with updateTick
+	
 
 	private GameObject laser;
 
@@ -122,80 +109,48 @@ public class PlayerControls : MonoBehaviour {
 
 	void PrimaryAttack() {
 
-		/* Spawn an attack and run it. May want to move this input capture to update as well */
+		// Create a unit normalized vector pointing in the direction from the center of the player sprite to the current
+		// world position of the mouse
 		Vector3 vel = (mainCamera.ScreenToWorldPoint(Input.mousePosition) - gameObject.GetComponent<Transform>().position);
 		vel = new Vector3(vel[0], vel[1], 0.0f); // Disregard z-direction
 		vel = vel.normalized;
+
+
 		Vector3 sz = Utils.GetActualBC2DSize(gameObject) / 2;
+
+		// Delta is an offset from the player center, where we choose to spawn the sprite
+		// todo: unsure if necessary
 		Vector3 delta = new Vector3(sz[0], 0.0f, 0.0f);
 		delta = delta * ((vel[0] > 0.0f) ? 1 : -1);
+		
+		// Determine the point at which to spawn the bullet
+		// Instantiate(...) creates a new bullet game object using the laserPrefab 
 		Vector3 laserSpawnPosition = GetComponent<Transform>().position + vel + delta;
 		laser = Instantiate(laserPrefab, laserSpawnPosition, Quaternion.identity);
+
+		// Scale the unity velocity by bullet speed and set the velocity of the newly instantiated bullet
 		vel = vel * laserSpeed;
 		laser.GetComponent<Rigidbody2D>().velocity = vel;
 		
 	}
 
-	private void BeginSpawnTree(Vector3 point) {
-
-		/* Initialize the tree sprite in the ground */
-		heightAdded = 0.0f;
-		thisTick = 0.0f;
-		spawningTree = true;
-		Vector2 sz = Utils.GetActualBC2DSize(syntheticTreePrefab);
-		Vector3 startPoint = new Vector3(point[0], point[1] - sz[1] / 2, 0.0f);
-		spawnedTree = Instantiate(syntheticTreePrefab, startPoint, Quaternion.identity);
-
-		
-	}
-
-	private void UpdateSpawnTree() {
-
-		Debug.Log("update spawn tree");
-
-		/* Perform update every 'updateTick' seconds */
-		if (thisTick < updateTick) {
-			thisTick += Time.deltaTime;
-			return;
-		} else {
-			thisTick = 0.0f; // reset the tick counter
-		}
-
-		/* Increment tree y-position */
-		if (heightAdded >= Utils.GetActualBC2DSize(syntheticTreePrefab)[1] / 2) {
-			spawningTree = false;
-			Debug.Log("finished");
-		}
-		
-		else {
-			spawnedTree.GetComponent<Transform>().position += (Vector3.up * spawnTreeDeltaPos);
-			heightAdded += spawnTreeDeltaPos;
-		}
-	}
+	
+	
 
 
 	/* Method: StageSpecial1
 	 * ---------------------
 	 * I'm thinking each stage will have one or two unique mechanics tailored to the setting, which may be triggered
 	 * by the methods StageSpecial(1/2) */
-	void StageSpecial1() {
-
-		Debug.Log("StageSpecial1");
-
-		if (stage == 1) {
-			/* Jungle Stage - causes a tree to grow at the mouse coordinates */
-			Vector3 worldPoint = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-			Vector3 viewportPoint = mainCamera.WorldToViewportPoint(worldPoint);
-			if (viewportPoint[0] >= 0.0 && viewportPoint[0] <= 1.0 && viewportPoint[1] >= 0.0 && viewportPoint[1] <= 1.0) {
-				BeginSpawnTree(worldPoint);
-			}
-		}
-	}
-
+	/* Update - not going to worry about this yet */
+	void StageSpecial1() { return; }
 	void StageSpecial2() { return; }
 
+	
 	/* Method: HandleActions
-	 * --------------------- */
+	 * --------------------- 
+	 * We're going to use this in some form
+	 */
 	void HandleActions() {
 
 		if (getKeyDown[primaryAttackCode])
@@ -210,21 +165,22 @@ public class PlayerControls : MonoBehaviour {
 
 		if (!touchingGround && !tethered) return;
 
-		/* Get direction and clamp magnitude at maxSpeed */
+		// Add a force to the rigidbody to accelerate it, then clamp at maxVelocity
+		// We may want to change this to just setting the velocity directly, depending on
+		// what feel we're looking for
 		if (getKey[KeyCode.RightArrow])
 			rb.AddForce(45 * Vector2.right);
 		if (getKey[KeyCode.LeftArrow]) 
 			rb.AddForce(45 * Vector2.left);
 		
-
-		/* Set max speed dependent on whether we are swinging or not */
+		// Set max speed dependent on whether we are swinging or not
 		float clampSpeed = tethered ? maxSwingSpeed : maxSpeed;
 
-		/* Clamp the x velocity */
+		// Clamp the x velocity
 		float vx = Mathf.Clamp(rb.velocity[0], -clampSpeed, clampSpeed);
 		rb.velocity = new Vector2(vx, rb.velocity[1]);
 
-		/* Update facing. Do nothing if velocity == 0 */
+		// Update facing. Do nothing if velocity == 0
 		if (rb.velocity[0] > 0.01f) facing = "right";
 		else if (rb.velocity[0] < -0.01f) facing = "left";
 
@@ -232,12 +188,11 @@ public class PlayerControls : MonoBehaviour {
 
 
 	void ApplyGravityMultipliers() {
+		/* https://www.youtube.com/watch?v=7KiK0Aqtmzc */
 
 		if (rb.velocity[1] < 0) {
-			/* Multiply the force of gravity by fallMultiplier when falling */
 			rb.velocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
 		} else if (rb.velocity[1] > 0 && !getKey[jumpCode]) {
-			/* If we are going up and have let go of the jump key, jump lower (apply higher gravity) */
 			rb.velocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
 
 		} 
@@ -246,7 +201,7 @@ public class PlayerControls : MonoBehaviour {
 
 	void ApplyWallJump() {
 
-		/* Get the wall that we're climbing, and add velocity directed away from that wall */
+		// Get the wall that we're climbing, and add velocity directed away from that wall
 		float wallJumpSpeed = 5f;
 		if (wallDirection == Vector2.left) {
 			Debug.Log("a");
@@ -256,7 +211,7 @@ public class PlayerControls : MonoBehaviour {
 			rb.velocity = (Vector2.left + Vector2.up) * wallJumpSpeed;
 		}
 		
-		/* No longer on wall, so apply gravity */
+		// No longer on wall, so apply gravity
 		onWall = false;
 		rb.gravityScale = 1f;
 
@@ -283,18 +238,25 @@ public class PlayerControls : MonoBehaviour {
 		boosting = true;
 	}
 
+
 	void VerticalMotionUpdate() {
+
+		// Handle logic for air boost
 
 		if (getKeyDown[airBoost] && canBoost) { 
 			canBoost = false;
 			ApplyAirBoost();
 		}
 
+		// If we're touching the ground and the jump button is pressed, then apply upward velocity
 		if (getKeyDown[jumpCode] && touchingGround)
 			rb.velocity += Vector2.up * jumpSpeed;
 		
+		// Do this regardless of whether or not we're jumping
 		ApplyGravityMultipliers();
 		
+		// Add bonus gravity to the player for faster jumping
+		// todo: do the same for enemy ai
 		if (!touchingGround) 
 			rb.velocity -= Vector2.up * playerBonusGravity * Time.deltaTime; 
 
@@ -303,17 +265,19 @@ public class PlayerControls : MonoBehaviour {
 
 	void CheckTouchingGround() {
 
-		/* Since we use a box collider, check both bottom corners for collisions with the ground */
+		// Raycast downward from the bottom corners of the player box collider and see if we encounter anything 
+		// labeled "ground"
 
 		float delta = Utils.GetActualBC2DSize(gameObject)[1] / 2 + 0.01f;
 		float delta2 = Utils.GetActualBC2DSize(gameObject)[0] / 2 + 0.05f; // 0.1f to give a bit of buffer
 		
-		/* Check the bottom left corner and the bottom right corner for raycast hits with the ground */
 		Vector3 posLeft = GetComponent<Transform>().position + delta * Vector3.down + delta2 * Vector3.left;
 		Vector3 posRight = GetComponent<Transform>().position + delta * Vector3.down + delta2 * Vector3.right;
-		float rayLength = 0.05f;
+		float rayLength = 0.05f; // how far to raycast
 		RaycastHit2D hitLeft = Physics2D.Raycast(posLeft, Vector2.down, rayLength);
 		RaycastHit2D hitRight = Physics2D.Raycast(posRight, Vector2.down, rayLength);
+		
+		// Update relevant member variables
 		if (hitLeft.collider != null || hitRight.collider != null) {
 			touchingGround = true;
 			canBoost = true; // reset canBoost each time we touch the ground
@@ -325,7 +289,7 @@ public class PlayerControls : MonoBehaviour {
 
 	void ClearInputLists() {
 		
-		/* Set all entries in our keypress dictionaries to false */
+		// Set all entries in our keypress dictionaries to false
 		foreach (KeyCode kc in getKeyList)
 			getKey[kc] = false;
 		foreach (KeyCode kc in getKeyDownList)
@@ -335,8 +299,8 @@ public class PlayerControls : MonoBehaviour {
 
 	void CaptureInput() {
 
-		/* Store all pressed keys that we care about in the relevant dictionaries for processing at the
-		 * next FixedUpdate step */
+		// Store all pressed keys that we care about in the relevant dictionaries for processing at the
+		// next FixedUpdate step
 		foreach (KeyCode kc in getKeyList)
 			getKey[kc] = getKey[kc] | Input.GetKey(kc);
 		foreach (KeyCode kc in getKeyDownList)
@@ -349,7 +313,7 @@ public class PlayerControls : MonoBehaviour {
 
 		Debug.Log("snap to wall " + fixedUpdateCount);
 
-		/* We found a climable wall, so the player should move as near as possible to it */
+		// We found a climable wall, so the player should move as near as possible to it
 		float wallColumn = c.GetComponent<Transform>().position[1];
 		float playerColumn = GetComponent<Transform>().position[1];
 
@@ -364,7 +328,7 @@ public class PlayerControls : MonoBehaviour {
 
 	bool LookForWall() {
 
-		/* Like SelectSwingTetherPoint, call from Update */
+		// Like SelectSwingTetherPoint, call from Update
 		Vector3 worldPoint = GetComponent<Transform>().position;
 		Vector2 worldPoint2 = new Vector2(worldPoint[0], worldPoint[1]);
 
@@ -394,7 +358,6 @@ public class PlayerControls : MonoBehaviour {
 
 	bool SelectSwingTetherPoint() {
 
-		/* Doesn't deal with physics, so call from Update */
 		Vector3 worldPoint = mainCamera.ScreenToWorldPoint(Input.mousePosition);
 		Vector2 worldMousePos = new Vector2(worldPoint[0], worldPoint[1]);
 		Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(worldMousePos, tetherPointClickRadius);
@@ -609,10 +572,7 @@ public class PlayerControls : MonoBehaviour {
 
 		CaptureInput();
 		HandleActions();
-		if (spawningTree) {
-			/* Continue spawning the tree */
-			UpdateSpawnTree();
-		}
+		
 		
 		/* Attempt to snap to wall when the corresponding keycode is pressed */
 		if (Input.GetKeyDown(lookForWall) && !onWall) {
