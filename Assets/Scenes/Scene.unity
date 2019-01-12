@@ -342,7 +342,7 @@ GameObject:
   - component: {fileID: 189259573}
   - component: {fileID: 189259572}
   - component: {fileID: 189259571}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Ground (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1334,21 +1334,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 852927140}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8a796ef60721547d68fa8e2722c3ae81, type: 3}
+  m_Script: {fileID: 11500000, guid: cdf4a1ee8b6a24b3092d070d353a2181, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   rb: {fileID: 852927141}
   mainCamera: {fileID: 916230831}
-  laserPrefab: {fileID: 498755154875801123, guid: bb6596d6098334849ad377fdd08a6d46,
+  BulletPrefab: {fileID: 498755154875801123, guid: bb6596d6098334849ad377fdd08a6d46,
     type: 3}
-  ropePrefab: {fileID: 4408836238458952225, guid: 1216831861c694c9fb98fb9ef5454b17,
+  TetherPointPrefab: {fileID: 7644257848402665373, guid: c020dafb4908b4b799773e8b5044acbf,
     type: 3}
-  tetherPointPrefab: {fileID: 777885771}
-  lineRenderRopePrefab: {fileID: 4332482011567849475, guid: 439f2da0fe2b54930852346041817496,
-    type: 3}
-  syntheticTreePrefab: {fileID: 8229665864308226449, guid: c31fc505c1a8e4d11b9de61b24a6ae43,
-    type: 3}
-  boostCloudPrefab: {fileID: 3910034346566782045, guid: a2a1482740ace4001a081a00c1c81821,
+  DashCloudPrefab: {fileID: 3910034346566782045, guid: a2a1482740ace4001a081a00c1c81821,
     type: 3}
 --- !u!212 &852927143
 SpriteRenderer:
@@ -1655,7 +1650,7 @@ GameObject:
   - component: {fileID: 1027812415}
   - component: {fileID: 1027812414}
   - component: {fileID: 1027812416}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2162,7 +2157,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1237251500
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2170,15 +2165,11 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1237251499}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e321b0911d3a43dd8156ee7af16e561, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildPad: {fileID: 1534624612}
-  codePad: {fileID: 515427870}
-  codePadExitButton: {fileID: 1604388991}
-  player: {fileID: 852927140}
 --- !u!4 &1237251501
 Transform:
   m_ObjectHideFlags: 0
@@ -3019,7 +3010,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &2028474268
 SpriteRenderer:
   m_ObjectHideFlags: 0
