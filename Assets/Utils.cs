@@ -43,3 +43,8 @@ public class Tuple<T,U> {
         Two = two;
     }
 }
+
+
+public delegate void UDelegateUpdate(); // Delegate our begin(), end(), update() functions to this type
+public delegate IEnumerator UDelegateCoroutine(); // Delegate our coroutine() functions to this type
+
