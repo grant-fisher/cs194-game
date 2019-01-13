@@ -51,8 +51,9 @@ public class Player : MonoBehaviour {
 	public const int StNormal = 0;
 	public const int StClimb = 1;
 	public const int StDash = 2;
-	public const int StWallJump = 3;
+	public const int StSlide = 3;
 	public const int StSwing = 4;
+
 
     private const float MaxRunSpeed = 8f;
 
@@ -93,13 +94,9 @@ public class Player : MonoBehaviour {
 		return GroundCheck();
 	}
 
-
-	// called by unity
-	void Update() 
+	void FixedUpdate()
 	{
-        if (PRINT_METHOD_CALL) Debug.Log("Update");
-
-		Input_.Capture();
+		fixedUpdateCount++;
 		StateMachine.Update();
 
 		if (StateMachine.State == StSwing)
@@ -114,28 +111,35 @@ public class Player : MonoBehaviour {
 			rb.AddForce(SwingForce);
 		}
 
+		rb.AddForce(Vector2.right * MoveForce);
+        var clampedVelocity = new Vector2(Mathf.Clamp(rb.velocity[0], -MaxRunSpeed, MaxRunSpeed), rb.velocity[1]);
+        rb.velocity = clampedVelocity;
+
+	}
+
+
+	// called by unity
+	void Update() 
+	{
+        if (PRINT_METHOD_CALL) Debug.Log("Update");
+
+		Input_.Capture();
+		StateMachine.Update();
+
+
+
 		if (StateMachine.State == StClimb)
 		{
 			ClimbTimer += Time.deltaTime;
 			HasStamina = ClimbTimer < MaxClimbTime;
-
-			// Deactivate gravity on the player while climbing
-			rb.gravityScale = 0f;
-			rb.AddForce(FrictionForce); // Sliding down wall
-		}
-		else
-		{
-			rb.gravityScale = 1f;
 		}
 
-
-        rb.AddForce(Vector2.right * MoveForce);
-        var clampedVelocity = new Vector2(Mathf.Clamp(rb.velocity[0], -MaxRunSpeed, MaxRunSpeed), rb.velocity[1]);
-        rb.velocity = clampedVelocity;
+	}
 
 
-		//rb.velocity = Speed;		
-
+	private bool CanDash()
+	{
+		return StateMachine.State == StNormal;
 	}
 
 
@@ -146,6 +150,19 @@ public class Player : MonoBehaviour {
 	private int Facing = 0; // Todo: Should be 1 or -1
     private float MoveForce = 0f;
     private float deltaMoveForce = 1f; // How much force is added in the horizontal direction at each step
+
+	private void NormalBegin()
+	{
+
+	}
+	private IEnumerator NormalCoroutine()
+	{
+		yield return null;
+	}
+	private void NormalEnd()
+	{
+		
+	}
 
 	private void NormalUpdate()	
 	{	       
@@ -165,6 +182,9 @@ public class Player : MonoBehaviour {
 			PrimaryAttack();
 		} 
 
+		// Todo: if we want to add the option for an instant wall jump, then these branches
+		// will not be mutually exclusive, but we'll need to make sure that we coordinate the switch
+		// to the climb state with the application of the jumps
 		if (Input_.Grab.Pressed && WallCheck())
 		{
 			StateMachine.State = StClimb;
@@ -174,7 +194,13 @@ public class Player : MonoBehaviour {
 			rb.velocity += Vector2.up * JumpSpeed; 
 		}
 
-		
+		if (Input_.Dash.Down && CanDash())
+		{
+			StateMachine.State = StDash;
+		}	
+
+
+
 		// Begin apply Gravity multipliers
 		// https://www.youtube.com/watch?v=7KiK0Aqtmzc 
         if (rb.velocity.y < 0)
@@ -206,13 +232,10 @@ public class Player : MonoBehaviour {
 	#endregion
 	
 	#region climbing
-	private float wallFrictionForce = 6f; // applied in upwards direction
 	private int wallDir; // -1 to left, +1 to right
 	private const float ClimbSpeed = 3f;
 	private bool HasStamina = true;
     private float ClimbTimer;
-
-	private Vector2 FrictionForce;
 
 	private void ClimbBegin()
 	{
@@ -220,8 +243,14 @@ public class Player : MonoBehaviour {
 
 		ClimbTimer = 0f;
 		rb.velocity = Vector2.zero;
-	}
 
+		// Nullify gravity on the player while climing for simplicity
+		rb.gravityScale = 0f;
+	}
+	private IEnumerator ClimbCoroutine()
+	{
+		yield return null;
+	}
 	private void ClimbUpdate()	
 	{
         if (PRINT_METHOD_CALL) Debug.Log("ClimbUpdate");
@@ -230,29 +259,26 @@ public class Player : MonoBehaviour {
 		{
 			WallJump(-wallDir);
 			StateMachine.State = StNormal;
-			return;
 		}
-
-		if (!Input_.Grab.Pressed)
+		else if (!Input_.Grab.Pressed)
 		{
 			// Free falling down the wall
-			FrictionForce = Vector2.zero;
 			StateMachine.State = StNormal;
-			return;
 		}
 
-
-		// Can do nothing else while climbing, which is why we use Update
-		// rather than a coroutine
-		if (HasStamina)
+		else // Continue climbing
 		{
-			rb.velocity = new Vector2(0f, Input_.MoveY.Value);
-			rb.velocity *= ClimbSpeed;
-		} 
-		else 
-		{
-			FrictionForce = Vector2.up * wallFrictionForce;
-			StateMachine.State = StNormal;
+			if (HasStamina)
+			{
+				// Move up or down the wall as we wish
+				rb.velocity = new Vector2(0f, Input_.MoveY.Value);
+				rb.velocity *= ClimbSpeed;
+			} 
+			else 
+			{
+				// Start sliding down the wall
+				StateMachine.State = StSlide;
+			}
 		}
 	}
 
@@ -261,10 +287,54 @@ public class Player : MonoBehaviour {
         if (PRINT_METHOD_CALL) Debug.Log("ClimbEnd");
 
 		ClimbTimer = 0f;
+		rb.gravityScale = 1f;
 	}
-
-
 	#endregion
+
+
+
+	// StSlide handles sliding down the wall
+	#region wallslide
+	private float wallFrictionForce = 6f; // applied in upwards direction
+	private void SlideBegin() 
+	{
+		// Reapply gravity at the start of the slide
+		rb.gravityScale = 1f;
+	}
+	private IEnumerator SlideCoroutine()
+	{
+		yield return null;
+	}
+	private void SlideUpdate()
+	{
+		if (Input_.Jump.Pressed)
+		{
+			// Execute wall jump
+			WallJump(-wallDir);
+			StateMachine.State = StNormal;
+		}
+		else if (!Input_.Grab.Pressed || GroundCheck())
+		{
+			// We either let go of the wall, or are touching the ground
+			StateMachine.State = StNormal;
+		}
+		else 
+		{
+			// We are still sliding, so apply the frictional force
+			rb.AddForce(Vector2.up * wallFrictionForce);
+		}
+	}
+	private void SlideEnd()
+	{
+		// No special behaviour for ending the slide
+	}
+	#endregion
+
+
+
+
+
+
 
 	#region dashing
 	// Check Dash timer and apply updates to velocity
@@ -286,19 +356,37 @@ public class Player : MonoBehaviour {
 		// Maintain dash velocity for kDashTime
 		while (DashTime < kDashTime)
 		{
+			Debug.Log("DT: " + DashTime + " " + kDashTime);
 			if (Input_.Grab.Pressed && WallCheck())
 			{
 				rb.velocity = Vector2.zero;
 				StateMachine.State = StClimb;
 				yield break; 
 			}
-			DashTime += Time.deltaTime;
-			yield return DashTime;
+			else if (GroundCheck())
+			{
+				Debug.Log("yeet");
+				rb.velocity = Vector2.zero;
+				StateMachine.State = StNormal;
+				yield break;
+			}
+			else
+			{
+				DashTime += Time.deltaTime;
+				yield return null;
+			}
+			
 		}
+
+		// Dash is completed while we are in the air, 
+		// so set state to normal and return the x component of velocity to its pre-dash setting
 		rb.velocity = new Vector2(preDashSpeed.x, rb.velocity.y);
 		StateMachine.State = StNormal;
+		yield return null;
 	}
 
+
+	
 
 	private void DashBegin() 
 	{
@@ -308,6 +396,27 @@ public class Player : MonoBehaviour {
 		preDashSpeed = rb.velocity;
 		DashDir = new Vector2(Input_.MoveX.Value, Input_.MoveY.Value);
 		rb.velocity = DashDir * dashSpeed;
+
+		var dcpos = Utils.Vec3ToVec2(GetComponent<Transform>().position);
+		DashCloud = Instantiate(DashCloudPrefab, dcpos, Quaternion.identity);
+
+		int degrees; // Measured counterclockwise from Vector2.right, since the cloud looks like an "0" shape
+		switch (Input_.MoveX.Value.ToString() + "|" + Input_.MoveY.Value.ToString())
+		{
+			case "1|0": 	degrees = 0; 	break;
+			case "1|1": 	degrees = 45; 	break;
+			case "0|1": 	degrees = 90; 	break;
+			case "-1|1": 	degrees = 135; 	break;
+			case "-1|0": 	degrees = 180; 	break;
+			case "-1|-1": 	degrees = 225; 	break;
+			case "0|-1": 	degrees = 270; 	break;
+			case "1|-1": 	degrees = 315; 	break;
+			default: 		degrees = 0; 	break;
+		}
+		
+		var rotation = new Vector3(0f, 0f, degrees);
+		DashCloud.GetComponent<Transform>().Rotate(rotation);
+
 	}
 
 	private void DashEnd() 
@@ -317,7 +426,7 @@ public class Player : MonoBehaviour {
 
     private void DashUpdate()
     {
-        if (PRINT_METHOD_CALL) Debug.Log("DashUpdate");
+        if (PRINT_METHOD_CALL) Debug.Log("DashUpdate " + fixedUpdateCount);
     }
 	#endregion
 
@@ -391,6 +500,7 @@ public class Player : MonoBehaviour {
             }
             yield return null;
         }
+		yield return null;
 
 	}
 	private void SwingUpdate()	
@@ -408,18 +518,6 @@ public class Player : MonoBehaviour {
 
 
 
-	private void NullFn() 
-    {
-        if (PRINT_METHOD_CALL) Debug.Log("NullFn");
-
-    }
-    private IEnumerator NullIEnumFn() 
-    { 
-        if (PRINT_METHOD_CALL) Debug.Log("NullIEnumFn");
-
-        yield return null; 
-    }
-    
     //https://gist.github.com/jbroadway/b94b971d224332f9158988a66f35f22d
     //https://answers.unity.com/questions/546668/how-to-create-coroutine-delegates.html
 	void Start() 
@@ -431,17 +529,25 @@ public class Player : MonoBehaviour {
         // Since our update methods are all of type void, pass them as delegates
         // Pass coroutines as illustrated in the second link
 
-        UDelegateUpdate dNormalUpdate = NormalUpdate, dNormalBegin = NullFn, dNormalEnd = NullFn;
-		StateMachine.SetCallbacks(StNormal, dNormalUpdate, NullIEnumFn(), dNormalBegin, dNormalEnd);
+        UDelegateFn dNormalUpdate = NormalUpdate, dNormalBegin = NormalBegin, dNormalEnd = NormalEnd;
+		System.Action l_normalCoroutine = () => StartCoroutine(NormalCoroutine());
+		StateMachine.SetCallbacks(StNormal, dNormalUpdate, l_normalCoroutine, dNormalBegin, dNormalEnd);
 
-        UDelegateUpdate dClimbUpdate = ClimbUpdate, dClimbBegin = ClimbBegin, dClimbEnd = ClimbEnd;
-		StateMachine.SetCallbacks(StClimb, dClimbUpdate, NullIEnumFn(), dClimbBegin, dClimbEnd);
+        UDelegateFn dClimbUpdate = ClimbUpdate, dClimbBegin = ClimbBegin, dClimbEnd = ClimbEnd;
+		System.Action l_climbCoroutine = () => StartCoroutine(ClimbCoroutine());
+		StateMachine.SetCallbacks(StClimb, dClimbUpdate, l_climbCoroutine, dClimbBegin, dClimbEnd);
 
-        UDelegateUpdate dDashUpdate = DashUpdate, dDashBegin = DashBegin, dDashEnd = DashEnd;
-		StateMachine.SetCallbacks(StDash, DashUpdate, DashCoroutine(), DashBegin, DashEnd);
+        UDelegateFn dDashUpdate = DashUpdate, dDashBegin = DashBegin, dDashEnd = DashEnd;
+		System.Action l_dashCoroutine = () => StartCoroutine(DashCoroutine());
+		StateMachine.SetCallbacks(StDash, DashUpdate, l_dashCoroutine, DashBegin, DashEnd);
 		
-        UDelegateUpdate dSwingUpdate = SwingUpdate, dSwingBegin = SwingBegin, dSwingEnd = SwingEnd;
-        StateMachine.SetCallbacks(StSwing, SwingUpdate, SwingCoroutine(), SwingBegin, SwingEnd);
+        UDelegateFn dSwingUpdate = SwingUpdate, dSwingBegin = SwingBegin, dSwingEnd = SwingEnd;
+		System.Action l_swingCoroutine = () => StartCoroutine(SwingCoroutine());
+        StateMachine.SetCallbacks(StSwing, SwingUpdate, l_swingCoroutine, SwingBegin, SwingEnd);
+
+		UDelegateFn dSlideUpdate = SlideUpdate, dSlideBegin = SlideBegin, dSlideEnd = SlideEnd;
+		System.Action l_slideCoroutine = () => StartCoroutine(SlideCoroutine());
+		StateMachine.SetCallbacks(StSlide, dSlideUpdate, l_slideCoroutine, dSlideBegin, dSlideEnd);
 
         // Set up our input class instance
 		Input_ = new Input_();
@@ -479,6 +585,6 @@ public class Player : MonoBehaviour {
 	// Within update step, modify these variables
 	// Within fixed update step, apply these variables
 
-
+	
 
 }

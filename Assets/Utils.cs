@@ -45,6 +45,6 @@ public class Tuple<T,U> {
 }
 
 
-public delegate void UDelegateUpdate(); // Delegate our begin(), end(), update() functions to this type
-public delegate IEnumerator UDelegateCoroutine(); // Delegate our coroutine() functions to this type
+public delegate void UDelegateFn(); // Delegate our begin(), end(), update() functions to this type
+//public delegate IEnumerator UDelegateCoroutine(); // Delegate our coroutine() functions to this type
 
