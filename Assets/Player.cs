@@ -39,7 +39,7 @@ public class Player : MonoBehaviour {
 	private float maxSwingSpeed = 10f;
 
 
-    private float MaxClimbTime = 5f;
+    private float MaxClimbTime = 1f;
 
 	// Maintain face = 1 if facing right, and face = 0 if facing left
 	private string facing = "right";
@@ -124,8 +124,6 @@ public class Player : MonoBehaviour {
         if (PRINT_METHOD_CALL) Debug.Log("Update");
 
 		Input_.Capture();
-		StateMachine.Update();
-
 
 
 		if (StateMachine.State == StClimb)
@@ -321,6 +319,7 @@ public class Player : MonoBehaviour {
 		else 
 		{
 			// We are still sliding, so apply the frictional force
+			Debug.Log("---- " + Vector2.up * wallFrictionForce + " " + rb.gravityScale + " " + Physics2D.gravity);
 			rb.AddForce(Vector2.up * wallFrictionForce);
 		}
 	}
@@ -556,7 +555,6 @@ public class Player : MonoBehaviour {
 		rb.freezeRotation = true;
 
 		StateMachine.State = StNormal;
-		StateMachine.Update();
 
 	}
 
