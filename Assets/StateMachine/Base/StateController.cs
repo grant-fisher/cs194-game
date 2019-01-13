@@ -11,7 +11,8 @@ public class StateController : MonoBehaviour {
     [HideInInspector] public EnemyStats stats;
     [HideInInspector] public EnemyView view;
 
-
+    public GameObject Player;
+    public Graph Graph;
 
 
     // If we switch to an avoidance behaviour, use this to determine the bullet to avoid

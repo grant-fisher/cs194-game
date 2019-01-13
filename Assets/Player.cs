@@ -105,7 +105,8 @@ public class Player : MonoBehaviour {
 				GetComponent<Transform>().position = newPosition;
 			}
 			// Update the line render endpoints at the end of each step
-			lineRender.GetComponent<LineRenderer>().SetPositions(lineRenderEndpoints);
+			LineRender.GetComponent<LineRenderer>().SetPositions(lineRenderEndpoints);
+			Debug.Log("Swing force: " + SwingForce + " " + "MoveForce: " + MoveForce);
 			rb.AddForce(SwingForce);
 		}
 
@@ -160,28 +161,49 @@ public class Player : MonoBehaviour {
 	{
         if (PRINT_METHOD_CALL) Debug.Log("Update");
 
-		if (!logging && !GroundCheck() && currPlatform != "")
+		if (false)
 		{
-			// Start logging and store the last input
-			Logger.StartLogging(currPlatform, rb.velocity, Utils.Vec3ToVec2(rb.position), StateMachine.State);
-			Logger.LogStep(Input_);
-			logging = true;
+			if (!logging && !GroundCheck() && currPlatform != "")
+			{
+				// Start logging and store the last input
+				Logger.StartLogging(currPlatform, rb.velocity, Utils.Vec3ToVec2(rb.position), StateMachine.State);
+				Logger.LogStep(Input_);
+				logging = true;
+			}
 		}
 		
 		// Capture the input and log it if desired
 		Input_.Capture();
 
-		if (logging)
+		
+		if (Input_.Swing.Down)
 		{
-			Input_.PrintInputState();
-			Logger.LogStep(Input_);
+			Debug.Log("Swing");
+			Tuple<bool, Collider2D[]> scanResult = SwingPointInRange();
+			if (scanResult.One)
+			{
+				Debug.Log("swing point found");
+				Collider2D swingPointCollider = scanResult.Two[0];
+				SwingPoint = swingPointCollider.gameObject;
+				StateMachine.State = StSwing;
+			}
 		}
-
 
 		if (StateMachine.State == StClimb)
 		{
 			ClimbTimer += Time.deltaTime;
 			HasStamina = ClimbTimer < MaxClimbTime;
+		}
+
+
+		if (false)
+		{
+			if (logging)
+			{
+				// Store the input state for this update step
+				//Input_.PrintInputState();
+				Logger.LogStep(Input_);
+			}
 		}
 
 	}
@@ -411,7 +433,6 @@ public class Player : MonoBehaviour {
 			}
 			else if (GroundCheck())
 			{
-				Debug.Log("yeet");
 				rb.velocity = Vector2.zero;
 				StateMachine.State = StNormal;
 				yield break;
@@ -476,7 +497,7 @@ public class Player : MonoBehaviour {
 	#endregion
 
 	#region swinging
-	private LineRenderer lineRender;
+	private LineRenderer LineRender;
 	private float kSwingForce;
 	private const float kDeltaRopeLength = 0.1f;
 	private Vector3[] lineRenderEndpoints;
@@ -484,8 +505,39 @@ public class Player : MonoBehaviour {
 	private HingeJoint2D hinge_A;
 	private HingeJoint2D hinge_B;
 	private bool positionChanged = false;
-	private GameObject tetherPoint;
-	private Vector2 SwingForce;
+	private GameObject SwingPoint; // If we connect with a swing point, store its game object here
+	private Vector2 SwingForce;	
+
+	// How far away from the swing point we can be and still attach
+	private const float maxSwingPointReachDist = 5f;
+
+
+	private Tuple<bool, Collider2D[]> SwingPointInRange()
+	{
+		// If there is an unobstructed swing point (marked "SwingPoint") in Unity,
+		// and if it is within our reach, then we can swing from it
+		Collider2D[] colliders = Physics2D.OverlapCircleAll(Utils.Vec3ToVec2(GetComponent<Transform>().position), maxSwingPointReachDist, (1 << SWING_POINT_LAYER));
+		
+		if (colliders.Length > 0)
+		{
+			var pos = GetComponent<Transform>().position;
+			// Sort in terms of increasing distance to the player
+			System.Array.Sort(
+				colliders,
+				delegate(Collider2D c1, Collider2D c2)
+				{
+					return ((pos - c1.gameObject.GetComponent<Transform>().position).magnitude).CompareTo((pos - c2.gameObject.GetComponent<Transform>().position).magnitude);
+				}
+			);
+			return new Tuple<bool, Collider2D[]>(true, colliders);
+		}
+		else 
+		{
+			return new Tuple<bool, Collider2D[]>(false, colliders);
+		}
+
+	}
+
 
 	void SetHingeJoints() {
         if (PRINT_METHOD_CALL) Debug.Log("SetHingeJoints");
@@ -493,22 +545,23 @@ public class Player : MonoBehaviour {
 		// https://forum.unity.com/threads/swinging-ninja-rope.227628/ 	
 		// connect hinges between the player and the selected TetherPoint
 		hinge_A = gameObject.AddComponent<HingeJoint2D>(); // on the player
-		hinge_B = tetherPoint.AddComponent<HingeJoint2D>(); // on the tether
-		hinge_A.connectedBody = tetherPoint.GetComponent<Rigidbody2D>();
+		hinge_B = SwingPoint.AddComponent<HingeJoint2D>(); // on the tether
+		Debug.Log("limits: " + hinge_A.limits.min + " " + hinge_A.limits.max + " " + hinge_B.limits.min + " " + hinge_B.limits.max);
+		hinge_A.connectedBody = SwingPoint.GetComponent<Rigidbody2D>();
 
 	}
 
 	private void SetRopeEndpoints()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SetRopeEndpoints");
-
-		lineRenderEndpoints = new Vector3[] { Utils.Vec3ToVec2(GetComponent<Transform>().position), tetherPoint.GetComponent<Transform>().position };
+		lineRenderEndpoints = new Vector3[] { Utils.Vec3ToVec2(GetComponent<Transform>().position), SwingPoint.GetComponent<Transform>().position };
 	}
 
 	void SwingBegin() 
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SwingBegin");
-
+		
+		MoveForce = 0f;
 		SetRopeEndpoints();
 		SetHingeJoints();
 
@@ -523,12 +576,12 @@ public class Player : MonoBehaviour {
             // Let MoveX still denote swinging motion from side to side
             // When swinging, handle with forces rather than by setting velocities
             SwingForce = Vector2.right * Input_.MoveX.Value * kSwingForce;
-
+			Debug.Log("Swing force: " + SwingForce + " Move: " + Input_.MoveX.Value + " " + Input_.MoveY.Value);
             if (Input_.MoveY.Value != 0) 
             {
                 // Move the player closer to or further from the hinge
                 // Delay execution until next call to Update()
-                var diff = Utils.Vec3ToVec2(tetherPoint.GetComponent<Transform>().position - GetComponent<Transform>().position).normalized;
+                var diff = Utils.Vec3ToVec2(SwingPoint.GetComponent<Transform>().position - GetComponent<Transform>().position).normalized;
                 newPosition = Utils.Vec3ToVec2(GetComponent<Transform>().position) + diff * kDeltaRopeLength;
                 positionChanged = true;
 
@@ -537,6 +590,7 @@ public class Player : MonoBehaviour {
                 Destroy(hinge_B);
 
                 // Add new hinge joints
+				SetRopeEndpoints();
                 SetHingeJoints(); 
             }
             else
@@ -551,6 +605,7 @@ public class Player : MonoBehaviour {
 	private void SwingUpdate()	
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SwingUpdate");
+		SetRopeEndpoints();
 
 	}
 	private void SwingEnd()
@@ -571,6 +626,8 @@ public class Player : MonoBehaviour {
 
 		StateMachine = new StateMachine(this);
 		Logger = new Logger();
+
+		LineRender = GetComponent<LineRenderer>();
 
 
         // Since our update methods are all of type void, pass them as delegates
@@ -611,6 +668,7 @@ public class Player : MonoBehaviour {
 
 	private const int WALL_LAYER = 10;
 	private const int GROUND_LAYER = 11;
+	private const int SWING_POINT_LAYER = 12;
 
 	private bool WallCheck()
 	{ 
@@ -629,10 +687,5 @@ public class Player : MonoBehaviour {
 		return Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), (1 << GROUND_LAYER));
 	}
 
-	// Define global variables for all physics-related information
-	// Within update step, modify these variables
-	// Within fixed update step, apply these variables
-
-	
 
 }
