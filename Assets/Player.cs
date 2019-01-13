@@ -148,8 +148,11 @@ public class Player : MonoBehaviour {
 				currPlatform = col.collider.gameObject.name;
 				Logger.EndLogging(currPlatform);
 				lastPlatform = currPlatform;
-				logging = false;
 			}	
+			// We only store the result of this logging if we change platforms,
+			// but either way we'll end logging
+			logging = false;
+
 		}
 	}
 
