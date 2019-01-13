@@ -46,7 +46,7 @@ public class StateMachine {
     {
         // Check if the state has changed. If so, then execute end() and begin() of
         // the previous and current states, respectively.
-        Debug.Log(State + " " + PrevState);
+        //Debug.Log(State + " " + PrevState);
         if (State != PrevState) 
         {
             if (callbacks[PrevState].end != null) 
@@ -65,11 +65,6 @@ public class StateMachine {
             if (coroutine != null)
             {
                 coroutine();
-                // Reset the coroutine
-                // callbacks[State].coroutine.Reset();
-
-                // Start the coroutine
-                //player.StartCoroutine(coroutine);
             }
         }
         // Execute the update function of the current state

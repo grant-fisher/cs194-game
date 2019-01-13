@@ -42,6 +42,19 @@ public class Input_ {
 		private List<KeyStatus> li = new List<KeyStatus>() { Jump, Dash, Attack, Grab, _Left, _Right, _Up, _Down };
 
 
+		public void PrintInputState()
+		{
+			Debug.Log("Jump: " 		+ (Jump.Pressed ? 1 : 0) + " " 		+ (Jump.Down ? 1 : 0));
+			Debug.Log("Dash: " 		+ (Dash.Pressed ? 1 : 0) + " " 		+ (Dash.Down ? 1 : 0));
+			Debug.Log("Attack: " 	+ (Attack.Pressed ? 1 : 0) + " " 	+ (Attack.Down ? 1 : 0));
+			Debug.Log("Grab: " 		+ (Grab.Pressed ? 1 : 0) + " " 		+ (Grab.Down ? 1 : 0));
+			Debug.Log("_Left: " 	+ (_Left.Pressed ? 1 : 0) + " " 	+ (_Left.Down ? 1 : 0));
+			Debug.Log("_Right: " 	+ (_Right.Pressed ? 1 : 0) + " " 	+ (_Right.Down ? 1 : 0));
+			Debug.Log("_Up: " 		+ (_Up.Pressed ? 1 : 0) + " " 		+ (_Up.Down ? 1 : 0));
+			Debug.Log("_Down: " 	+ (_Down.Pressed ? 1 : 0) + " " 	+ (_Down.Down ? 1 : 0));
+
+		}		
+
         public Dictionary<string, KeyStatus> RecordInputState()
         {
             return new Dictionary<string, KeyStatus>() 
