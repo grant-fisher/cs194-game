@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 // ******************************************************************
 // StateMachine is responsible for tracking the current player state
@@ -21,21 +22,23 @@ public class StateMachine {
 
     public class StateStruct 
     {
-        public UDelegateUpdate update, begin, end;
-        public IEnumerator coroutine;
-        public StateStruct(UDelegateUpdate a, IEnumerator b, UDelegateUpdate c, UDelegateUpdate d)
+        public UDelegateFn update, begin, end;
+        public System.Action coroutine;
+        public StateStruct(UDelegateFn a, System.Action b, UDelegateFn c, UDelegateFn d)
         {
             this.update = a; this.coroutine = b; this.begin = c; this.end = d;
         }
     }
 
-    public StateMachine(Player _player) {
+    public StateMachine(Player _player) 
+    {
         callbacks = new Dictionary<int, StateStruct>();
         this.player = _player;
     }
 
     // Add the callback functions for a new state to our callbacks dictioanry
-    public void SetCallbacks(int i, UDelegateUpdate update, IEnumerator coroutine, UDelegateUpdate begin, UDelegateUpdate end) {
+    public void SetCallbacks(int i, UDelegateFn update, System.Action coroutine, UDelegateFn begin, UDelegateFn end) 
+    {
         callbacks[i] = new StateStruct(update, coroutine, begin, end);
     }
 
@@ -43,22 +46,37 @@ public class StateMachine {
     {
         // Check if the state has changed. If so, then execute end() and begin() of
         // the previous and current states, respectively.
-        if (State != PrevState) {
-            if (callbacks[PrevState].end != null) {
+        Debug.Log(State + " " + PrevState);
+        if (State != PrevState) 
+        {
+            if (callbacks[PrevState].end != null) 
+            {
                 callbacks[PrevState].end();        
             }
             PrevState = State;
-            IEnumerator coroutine = callbacks[State].coroutine;
+
+            UDelegateFn begin = callbacks[State].begin;
+            if (begin != null)
+            {
+                begin();
+            }
+
+            System.Action coroutine = callbacks[State].coroutine;
             if (coroutine != null)
             {
-                player.StartCoroutine(coroutine);
+                coroutine();
+                // Reset the coroutine
+                // callbacks[State].coroutine.Reset();
+
+                // Start the coroutine
+                //player.StartCoroutine(coroutine);
             }
         }
         // Execute the update function of the current state
-        if (callbacks[State].update != null)
+        UDelegateFn update = callbacks[State].update;
+        if (update != null)
         {
-            Debug.Log("calling update");
-            callbacks[State].update();
+            update();
         }
 
         
