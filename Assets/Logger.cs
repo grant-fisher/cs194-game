@@ -4,22 +4,14 @@ using UnityEngine;
 
 public class Logger
 {
-
-    private Dictionary<string, GameObject> inter;
-
-    public Logger()
-    {
-        // Cache all ground-type game objects by name
-        inter = new Dictionary<string, GameObject>();
-        foreach (GameObject ground in GameObject.FindGameObjectsWithTag("Ground"))
-        {
-            inter[ground.name] = ground;
-        }
-    }
-
     // usage: platformGraph[startPlatform][endPlatform] => list of paths from start to end platforms
     // This is added to at the end of each logging
     public Dictionary<string, Dictionary<string, List<Path>>> platformGraph;
+    
+    public Logger()
+    {
+        platformGraph = new Dictionary<string, Dictionary<string, List<Path>>>();
+    }
 
     private Path path; // This is the path we're building
     private List<Dictionary<string, Input_.KeyStatus>> recording; // These are the key strokes being recorded
@@ -37,10 +29,11 @@ public class Logger
         recording = new List<Dictionary<string, Input_.KeyStatus>>();
     }
 
-    public void LogStep(Input_ Input_, StateMachine StateMachine)
+    public void LogStep(Input_ Input_)
     {
         recording.Add(Input_.RecordInputState());
     }
+
 
     public void EndLogging(string platform)
     {
@@ -79,7 +72,7 @@ public class Path
 
     public Path()
     {
-        
+        path = new List<List<Dictionary<string, Input_.KeyStatus>>>();
     }
 }
 

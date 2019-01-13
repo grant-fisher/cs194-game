@@ -2046,7 +2046,7 @@ GameObject:
   - component: {fileID: 1227244622}
   - component: {fileID: 1227244621}
   - component: {fileID: 1227244620}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Ground (2)
   m_TagString: ClimbableWall
   m_Icon: {fileID: 0}

@@ -21,8 +21,6 @@ public class Player : MonoBehaviour {
 
 	private const float BulletSpeed = 10.0f;
 
-
-
 	private const float maxSpeed = 5.0f; // Max running speed
 	private const float stopTime = 0.3f; 
 
@@ -39,7 +37,7 @@ public class Player : MonoBehaviour {
 	private float maxSwingSpeed = 10f;
 
 
-    private float MaxClimbTime = 5f;
+    private float MaxClimbTime = 1f;
 
 	// Maintain face = 1 if facing right, and face = 0 if facing left
 	private string facing = "right";
@@ -58,7 +56,7 @@ public class Player : MonoBehaviour {
     private const float MaxRunSpeed = 8f;
 
 
-    private const bool PRINT_METHOD_CALL = true;
+    private const bool PRINT_METHOD_CALL = false;
 
 	void PrimaryAttack() {
 
@@ -119,13 +117,65 @@ public class Player : MonoBehaviour {
 
 
 	// called by unity
+
+	private Logger Logger;
+	
+	// For logging, if we detect having left the platform, then update
+	// these variables and start logging
+	private string lastPlatform = "";
+	private string currPlatform = "";
+
+	// Set to true when we leave the ground and record the last platform. 
+	// If we encounter a new platform that is different than lastPlatform while 
+	// logging == true, then update the log
+	private bool logging = false;
+
+	void OnCollisionEnter2D(Collision2D col)
+	{
+		Debug.Log("collision!");
+		if (lastPlatform == "" || currPlatform == "")
+		{
+				// Set initial platforms
+				lastPlatform = col.collider.gameObject.name;
+				currPlatform = col.collider.gameObject.name;
+		}
+
+		if (logging && col.collider.gameObject.layer == GROUND_LAYER)
+		{
+			if (col.collider.gameObject.name != lastPlatform)
+			{
+				// Update the log for the path between these two platforms
+				currPlatform = col.collider.gameObject.name;
+				Logger.EndLogging(currPlatform);
+				lastPlatform = currPlatform;
+			}	
+			// We only store the result of this logging if we change platforms,
+			// but either way we'll end logging
+			logging = false;
+
+		}
+	}
+
 	void Update() 
 	{
         if (PRINT_METHOD_CALL) Debug.Log("Update");
 
+		if (!logging && !GroundCheck() && currPlatform != "")
+		{
+			// Start logging and store the last input
+			Logger.StartLogging(currPlatform, rb.velocity, Utils.Vec3ToVec2(rb.position), StateMachine.State);
+			Logger.LogStep(Input_);
+			logging = true;
+		}
+		
+		// Capture the input and log it if desired
 		Input_.Capture();
-		StateMachine.Update();
 
+		if (logging)
+		{
+			Input_.PrintInputState();
+			Logger.LogStep(Input_);
+		}
 
 
 		if (StateMachine.State == StClimb)
@@ -188,6 +238,7 @@ public class Player : MonoBehaviour {
 		if (Input_.Grab.Pressed && WallCheck())
 		{
 			StateMachine.State = StClimb;
+
 		}
 		else if (Input_.Jump.Down && CanJump())
 		{
@@ -331,11 +382,6 @@ public class Player : MonoBehaviour {
 	#endregion
 
 
-
-
-
-
-
 	#region dashing
 	// Check Dash timer and apply updates to velocity
 
@@ -377,7 +423,6 @@ public class Player : MonoBehaviour {
 			}
 			
 		}
-
 		// Dash is completed while we are in the air, 
 		// so set state to normal and return the x component of velocity to its pre-dash setting
 		rb.velocity = new Vector2(preDashSpeed.x, rb.velocity.y);
@@ -525,6 +570,8 @@ public class Player : MonoBehaviour {
         if (PRINT_METHOD_CALL) Debug.Log("Start");
 
 		StateMachine = new StateMachine(this);
+		Logger = new Logger();
+
 
         // Since our update methods are all of type void, pass them as delegates
         // Pass coroutines as illustrated in the second link
@@ -556,20 +603,21 @@ public class Player : MonoBehaviour {
 		rb.freezeRotation = true;
 
 		StateMachine.State = StNormal;
-		StateMachine.Update();
+
+
 
 	}
 
 
-	private const int MASK_WALL_LAYER = (1 << 10);
-	private const int MASK_GROUND_LAYER = (1 << 11);
+	private const int WALL_LAYER = 10;
+	private const int GROUND_LAYER = 11;
 
 	private bool WallCheck()
 	{ 
         if (PRINT_METHOD_CALL) Debug.Log("WallCheck");
 
 		// Call this method after the physics update step
-		return Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), MASK_WALL_LAYER);
+		return Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), (1 << WALL_LAYER));
 	}
 
 	private bool GroundCheck()
@@ -578,7 +626,7 @@ public class Player : MonoBehaviour {
         if (PRINT_METHOD_CALL) Debug.Log("GroundCheck");
 
         //Debug.Log("Ground check: " + Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), MASK_GROUND_LAYER));
-		return Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), MASK_GROUND_LAYER);
+		return Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), (1 << GROUND_LAYER));
 	}
 
 	// Define global variables for all physics-related information
