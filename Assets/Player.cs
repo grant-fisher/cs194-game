@@ -14,6 +14,7 @@ public class Player : MonoBehaviour {
 	public GameObject BulletPrefab;
 	public GameObject TetherPointPrefab;
 	public GameObject DashCloudPrefab;
+	public Material pathVisMaterial;
 	#endregion
 
     private GameObject DashCloud;
@@ -133,6 +134,8 @@ public class Player : MonoBehaviour {
 
 	void OnCollisionEnter2D(Collision2D col)
 	{
+		if (!LOGGING) return;
+
 		Debug.Log("collision!");
 		if (lastPlatform == "" || currPlatform == "")
 		{
@@ -149,6 +152,13 @@ public class Player : MonoBehaviour {
 				currPlatform = col.collider.gameObject.name;
 				Logger.EndLogging(currPlatform);
 				lastPlatform = currPlatform;
+
+				// update visualizations if desired
+				if (true)
+				{
+					ShowPaths();
+				}
+
 			}	
 			// We only store the result of this logging if we change platforms,
 			// but either way we'll end logging
@@ -156,12 +166,16 @@ public class Player : MonoBehaviour {
 
 		}
 	}
+	
+	// Whether we are going to log movements
+	// Might degrade performance, so only use when we have reason to
+	private bool LOGGING = true;
 
 	void Update() 
 	{
         if (PRINT_METHOD_CALL) Debug.Log("Update");
 
-		if (false)
+		if (LOGGING)
 		{
 			if (!logging && !GroundCheck() && currPlatform != "")
 			{
@@ -200,9 +214,9 @@ public class Player : MonoBehaviour {
 		}
 
 
-		if (false)
+		if (LOGGING) // to toggle whether we want to log at all
 		{
-			if (logging)
+			if (logging) // to toggle whether we are recording input
 			{
 				// Store the input state for this update step
 				//Input_.PrintInputState();
@@ -632,6 +646,8 @@ public class Player : MonoBehaviour {
 	{
         if (PRINT_METHOD_CALL) Debug.Log("Start");
 
+		CachePlatforms();
+
 		StateMachine = new StateMachine(this);
 		Logger = new Logger();
 
@@ -676,6 +692,7 @@ public class Player : MonoBehaviour {
 	private const int WALL_LAYER = 10;
 	private const int GROUND_LAYER = 11;
 	private const int SWING_POINT_LAYER = 12;
+	private const int PATHVIS_LAYER = 13;
 
 	private bool WallCheck()
 	{ 
@@ -689,10 +706,68 @@ public class Player : MonoBehaviour {
 	{
 
         if (PRINT_METHOD_CALL) Debug.Log("GroundCheck");
-
-        //Debug.Log("Ground check: " + Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), MASK_GROUND_LAYER));
 		return Physics2D.IsTouchingLayers(GetComponent<Collider2D>(), (1 << GROUND_LAYER));
 	}
 
 
+	#region paths
+	Dictionary<string, GameObject> platformCache = new Dictionary<string, GameObject>();
+	private void CachePlatforms()
+	{
+		foreach (GameObject g in FindObjectsOfType<GameObject>())
+		{
+			if (g.layer == GROUND_LAYER)
+			{
+				platformCache[g.name] = g;
+			}
+		}
+	}
+	
+	List<GameObject> pathRenderers = new List<GameObject>();
+	
+	public void ShowPaths()
+	{
+		// Erase all current line renderers
+		foreach (GameObject lr in pathRenderers)
+		{
+			Destroy(lr);
+		}
+
+		// Get the current state of the platform graph
+		Dictionary<string, Dictionary<string, List<Path>>> di = Logger.platformGraph;
+		
+		// Differentiate between the added game objects
+		int count = 0;
+		foreach (string one in di.Keys)
+		{
+			foreach (string two in di[one].Keys)
+			{
+				foreach (Path path in di[one][two])
+				{
+					count++;
+
+					// Add a new game object to house the line renderer
+					GameObject obj = new GameObject("LR" + count);
+					LineRenderer lineRend = obj.AddComponent<LineRenderer>() as LineRenderer;
+					lineRend.material = pathVisMaterial;
+					lineRend.renderingLayerMask = PATHVIS_LAYER;
+					// Set the start and end positions of this line renderer
+					var start = platformCache[path.startPlatform].GetComponent<Transform>().position;
+					var finish = platformCache[path.endPlatform].GetComponent<Transform>().position;
+					Vector3[] v3pos = new Vector3[] { Utils.Vec2ToVec3(start), Utils.Vec2ToVec3(finish) };
+					lineRend.SetPositions(v3pos);
+					pathRenderers.Add(obj);
+				}
+			}
+		}
+	}
+
+
+	#endregion
+
+
+
+
 }
+
+

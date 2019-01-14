@@ -9,8 +9,8 @@ public class Graph
     // To be initialized upon logging completion
 
     private Dictionary<string, Dictionary<string, List<Path>>> _internal;
-
     private System.Random rnd = new System.Random();
+    private List<LineRenderer> pathVisualizations; // initialize in Start
 
     public Graph(Dictionary<string, Dictionary<string, List<Path>>> di)
     {
