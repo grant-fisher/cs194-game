@@ -176,9 +176,9 @@ public class Player : MonoBehaviour {
 		Input_.Capture();
 
 		
-		if (Input_.Swing.Down)
+		if (Input_.Swing.Down && StateMachine.State != StSwing)
 		{
-			Debug.Log("Swing");
+
 			Tuple<bool, Collider2D[]> scanResult = SwingPointInRange();
 			if (scanResult.One)
 			{
@@ -187,6 +187,10 @@ public class Player : MonoBehaviour {
 				SwingPoint = swingPointCollider.gameObject;
 				StateMachine.State = StSwing;
 			}
+		}
+		else if (Input_.Swing.Down && StateMachine.State == StSwing)
+		{
+			StateMachine.State = StNormal;
 		}
 
 		if (StateMachine.State == StClimb)
@@ -498,7 +502,7 @@ public class Player : MonoBehaviour {
 
 	#region swinging
 	private LineRenderer LineRender;
-	private float kSwingForce;
+	private float kSwingForce = 3f;
 	private const float kDeltaRopeLength = 0.1f;
 	private Vector3[] lineRenderEndpoints;
 	private Vector3 newPosition;
@@ -539,7 +543,8 @@ public class Player : MonoBehaviour {
 	}
 
 
-	void SetHingeJoints() {
+	void SetHingeJoints() 
+	{
         if (PRINT_METHOD_CALL) Debug.Log("SetHingeJoints");
 
 		// https://forum.unity.com/threads/swinging-ninja-rope.227628/ 	
@@ -560,7 +565,7 @@ public class Player : MonoBehaviour {
 	void SwingBegin() 
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SwingBegin");
-		
+		LineRender.enabled = true;
 		MoveForce = 0f;
 		SetRopeEndpoints();
 		SetHingeJoints();
@@ -582,7 +587,7 @@ public class Player : MonoBehaviour {
                 // Move the player closer to or further from the hinge
                 // Delay execution until next call to Update()
                 var diff = Utils.Vec3ToVec2(SwingPoint.GetComponent<Transform>().position - GetComponent<Transform>().position).normalized;
-                newPosition = Utils.Vec3ToVec2(GetComponent<Transform>().position) + diff * kDeltaRopeLength;
+                newPosition = Utils.Vec3ToVec2(GetComponent<Transform>().position) + diff * kDeltaRopeLength * Input_.MoveY.Value;
                 positionChanged = true;
 
                 // Destroy old hinge joints
@@ -613,6 +618,9 @@ public class Player : MonoBehaviour {
         if (PRINT_METHOD_CALL) Debug.Log("SwingEnd");
 
 		positionChanged = false;
+		Destroy(hinge_A);
+		Destroy(hinge_B);
+		LineRender.enabled = false;
 	}
 	#endregion
 
@@ -628,7 +636,7 @@ public class Player : MonoBehaviour {
 		Logger = new Logger();
 
 		LineRender = GetComponent<LineRenderer>();
-
+		LineRender.enabled = false;
 
         // Since our update methods are all of type void, pass them as delegates
         // Pass coroutines as illustrated in the second link
@@ -660,7 +668,6 @@ public class Player : MonoBehaviour {
 		rb.freezeRotation = true;
 
 		StateMachine.State = StNormal;
-
 
 
 	}

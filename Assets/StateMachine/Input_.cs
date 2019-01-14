@@ -98,8 +98,8 @@ public class Input_ {
 			// Some of our KeyStatus objects are used for the value field, which is determined
 			// by other key status objects
 			MoveX.Value = (_Left.Pressed ? -1 : 0) + (_Right.Pressed ? 1 : 0);
-			MoveY.Value = (_Down.Pressed ? -1 : 0) + (_Right.Pressed ? 1 : 0);
-			DeltaRope.Value = (_Down.Pressed ? -1 : 0) + (_Right.Pressed ? 1 : 0);
+			MoveY.Value = (_Down.Pressed ? -1 : 0) + (_Up.Pressed ? 1 : 0);
+			DeltaRope.Value = (_Down.Pressed ? -1 : 0) + (_Up.Pressed ? 1 : 0);
 
 		}	
 
