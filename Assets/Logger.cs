@@ -35,7 +35,7 @@ public class Logger
     }
 
 
-    public void EndLogging(string platform)
+    public void EndLogging(string platform) 
     {
         path.endPlatform = platform;
         path.path.Add(recording);
