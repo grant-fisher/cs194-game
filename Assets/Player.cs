@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Player : MonoBehaviour {
 
+	[HideInInspector] public Animator Animator;
+
 	public Rigidbody2D rb;
 	public Camera mainCamera;
 
@@ -17,13 +19,13 @@ public class Player : MonoBehaviour {
 	public Material pathVisMaterial;
 	#endregion
 
-    private GameObject DashCloud;
+  private GameObject DashCloud;
 
 
 	private const float BulletSpeed = 10.0f;
 
 	private const float maxSpeed = 5.0f; // Max running speed
-	private const float stopTime = 0.3f; 
+	private const float stopTime = 0.3f;
 
 	private float JumpSpeed = 12f;
 
@@ -54,14 +56,15 @@ public class Player : MonoBehaviour {
 	public const int StSwing = 4;
 
 
-    private const float MaxRunSpeed = 8f;
+  private const float MaxRunSpeed = 8f;
 
 
-    private const bool PRINT_METHOD_CALL = false;
+  private const bool PRINT_METHOD_CALL = false;
 
-	void PrimaryAttack() {
+	void PrimaryAttack()
+	{
 
-        if (PRINT_METHOD_CALL) Debug.Log("PrimaryAttack");
+    if (PRINT_METHOD_CALL) Debug.Log("PrimaryAttack");
 
 		// Create a unit normalized vector pointing in the direction from the center of the player sprite to the current
 		// world position of the mouse
@@ -73,22 +76,22 @@ public class Player : MonoBehaviour {
 		// todo: unsure if necessary
 		var delta = new Vector2(sz.x, 0.0f);
 		delta = delta * ((vel[0] > 0.0f) ? 1 : -1);
-		
+
 		// Determine the point at which to spawn the bullet
-		// Instantiate(...) creates a new bullet game object using the bulletPrefab 
+		// Instantiate(...) creates a new bullet game object using the bulletPrefab
 		var bulletSpawnPosition = Utils.Vec3ToVec2(GetComponent<Transform>().position) + vel + delta;
 		bullet = Instantiate(BulletPrefab, bulletSpawnPosition, Quaternion.identity);
 
 		// Scale the unity velocity by bullet speed and set the velocity of the newly instantiated bullet
 		vel = vel * BulletSpeed;
 		bullet.GetComponent<Rigidbody2D>().velocity = vel;
-		
+
 	}
 
 
 	private bool CanJump()
 	{
-        if (PRINT_METHOD_CALL) Debug.Log("CanJump");
+    if (PRINT_METHOD_CALL) Debug.Log("CanJump");
 
 		return GroundCheck();
 	}
@@ -121,14 +124,14 @@ public class Player : MonoBehaviour {
 	// called by unity
 
 	private Logger Logger;
-	
+
 	// For logging, if we detect having left the platform, then update
 	// these variables and start logging
 	private string lastPlatform = "";
 	private string currPlatform = "";
 
-	// Set to true when we leave the ground and record the last platform. 
-	// If we encounter a new platform that is different than lastPlatform while 
+	// Set to true when we leave the ground and record the last platform.
+	// If we encounter a new platform that is different than lastPlatform while
 	// logging == true, then update the log
 	private bool logging = false;
 
@@ -159,19 +162,19 @@ public class Player : MonoBehaviour {
 					ShowPaths();
 				}
 
-			}	
+			}
 			// We only store the result of this logging if we change platforms,
 			// but either way we'll end logging
 			logging = false;
 
 		}
 	}
-	
+
 	// Whether we are going to log movements
 	// Might degrade performance, so only use when we have reason to
 	private bool LOGGING = true;
 
-	void Update() 
+	void Update()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("Update");
 
@@ -185,11 +188,11 @@ public class Player : MonoBehaviour {
 				logging = true;
 			}
 		}
-		
+
 		// Capture the input and log it if desired
 		Input_.Capture();
 
-		
+
 		if (Input_.Swing.Down && StateMachine.State != StSwing)
 		{
 
@@ -224,6 +227,9 @@ public class Player : MonoBehaviour {
 			}
 		}
 
+		Animator.SetFloat("Speed", rb.velocity.magnitude);
+		Animator.SetInteger("Facing", 1);
+
 	}
 
 
@@ -251,13 +257,13 @@ public class Player : MonoBehaviour {
 	}
 	private void NormalEnd()
 	{
-		
+
 	}
 
-	private void NormalUpdate()	
-	{	       
+	private void NormalUpdate()
+	{
         if (PRINT_METHOD_CALL) Debug.Log("NormalUpdate");
- 
+
         if (Input_.MoveX.Value != 0)
         {
             MoveForce += deltaMoveForce * Input_.MoveX.Value;
@@ -270,7 +276,7 @@ public class Player : MonoBehaviour {
 		if (Input_.Attack.Down)
 		{
 			PrimaryAttack();
-		} 
+		}
 
 		// Todo: if we want to add the option for an instant wall jump, then these branches
 		// will not be mutually exclusive, but we'll need to make sure that we coordinate the switch
@@ -282,26 +288,26 @@ public class Player : MonoBehaviour {
 		}
 		else if (Input_.Jump.Down && CanJump())
 		{
-			rb.velocity += Vector2.up * JumpSpeed; 
+			rb.velocity += Vector2.up * JumpSpeed;
 		}
 
 		if (Input_.Dash.Down && CanDash())
 		{
 			StateMachine.State = StDash;
-		}	
+		}
 
 
 
 		// Begin apply Gravity multipliers
-		// https://www.youtube.com/watch?v=7KiK0Aqtmzc 
+		// https://www.youtube.com/watch?v=7KiK0Aqtmzc
         if (rb.velocity.y < 0)
-		{			
+		{
 			rb.velocity += Vector2.up * Physics2D.gravity.y * (FallMultiplier - 1) * Time.deltaTime;
 		}
-		else if (rb.velocity.y > 0 && !Input_.Jump.Pressed) 
+		else if (rb.velocity.y > 0 && !Input_.Jump.Pressed)
 		{
 			rb.velocity += Vector2.up * Physics2D.gravity.y * (LowJumpMultiplier - 1) * Time.deltaTime;
-		} 
+		}
 		// End gravity multipliers
 	}
 	#endregion
@@ -310,18 +316,18 @@ public class Player : MonoBehaviour {
 
 
 	private const float WallJumpSpeed = 5f;
-	private void WallJump(int dir) 
+	private void WallJump(int dir)
 	{
         if (PRINT_METHOD_CALL) Debug.Log("WallJump");
 
 		// Jump in the direction of dir at 45 degree angle
-		var wallJumpTrajectory = new Vector2(dir, 1f); 
+		var wallJumpTrajectory = new Vector2(dir, 1f);
 		rb.velocity = wallJumpTrajectory * WallJumpSpeed;
 		StateMachine.State = StNormal;
 	}
 
 	#endregion
-	
+
 	#region climbing
 	private int wallDir; // -1 to left, +1 to right
 	private const float ClimbSpeed = 3f;
@@ -342,7 +348,7 @@ public class Player : MonoBehaviour {
 	{
 		yield return null;
 	}
-	private void ClimbUpdate()	
+	private void ClimbUpdate()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("ClimbUpdate");
 
@@ -364,8 +370,8 @@ public class Player : MonoBehaviour {
 				// Move up or down the wall as we wish
 				rb.velocity = new Vector2(0f, Input_.MoveY.Value);
 				rb.velocity *= ClimbSpeed;
-			} 
-			else 
+			}
+			else
 			{
 				// Start sliding down the wall
 				StateMachine.State = StSlide;
@@ -387,7 +393,7 @@ public class Player : MonoBehaviour {
 	// StSlide handles sliding down the wall
 	#region wallslide
 	private float wallFrictionForce = 6f; // applied in upwards direction
-	private void SlideBegin() 
+	private void SlideBegin()
 	{
 		// Reapply gravity at the start of the slide
 		rb.gravityScale = 1f;
@@ -409,7 +415,7 @@ public class Player : MonoBehaviour {
 			// We either let go of the wall, or are touching the ground
 			StateMachine.State = StNormal;
 		}
-		else 
+		else
 		{
 			// We are still sliding, so apply the frictional force
 			rb.AddForce(Vector2.up * wallFrictionForce);
@@ -427,7 +433,7 @@ public class Player : MonoBehaviour {
 
 	private float DashTime;
 	private const float kDashTime = 0.8f;
-	
+
 	private Vector2 DashDir;
     private const float dashSpeed = 10f;
 	private Vector2 preDashSpeed;
@@ -447,7 +453,7 @@ public class Player : MonoBehaviour {
 			{
 				rb.velocity = Vector2.zero;
 				StateMachine.State = StClimb;
-				yield break; 
+				yield break;
 			}
 			else if (GroundCheck())
 			{
@@ -460,9 +466,9 @@ public class Player : MonoBehaviour {
 				DashTime += Time.deltaTime;
 				yield return null;
 			}
-			
+
 		}
-		// Dash is completed while we are in the air, 
+		// Dash is completed while we are in the air,
 		// so set state to normal and return the x component of velocity to its pre-dash setting
 		rb.velocity = new Vector2(preDashSpeed.x, rb.velocity.y);
 		StateMachine.State = StNormal;
@@ -470,9 +476,9 @@ public class Player : MonoBehaviour {
 	}
 
 
-	
 
-	private void DashBegin() 
+
+	private void DashBegin()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("DashBegin");
 
@@ -497,13 +503,13 @@ public class Player : MonoBehaviour {
 			case "1|-1": 	degrees = 315; 	break;
 			default: 		degrees = 0; 	break;
 		}
-		
+
 		var rotation = new Vector3(0f, 0f, degrees);
 		DashCloud.GetComponent<Transform>().Rotate(rotation);
 
 	}
 
-	private void DashEnd() 
+	private void DashEnd()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("DashEnd");
 	}
@@ -524,7 +530,7 @@ public class Player : MonoBehaviour {
 	private HingeJoint2D hinge_B;
 	private bool positionChanged = false;
 	private GameObject SwingPoint; // If we connect with a swing point, store its game object here
-	private Vector2 SwingForce;	
+	private Vector2 SwingForce;
 
 	// How far away from the swing point we can be and still attach
 	private const float maxSwingPointReachDist = 5f;
@@ -535,7 +541,7 @@ public class Player : MonoBehaviour {
 		// If there is an unobstructed swing point (marked "SwingPoint") in Unity,
 		// and if it is within our reach, then we can swing from it
 		Collider2D[] colliders = Physics2D.OverlapCircleAll(Utils.Vec3ToVec2(GetComponent<Transform>().position), maxSwingPointReachDist, (1 << SWING_POINT_LAYER));
-		
+
 		if (colliders.Length > 0)
 		{
 			var pos = GetComponent<Transform>().position;
@@ -549,7 +555,7 @@ public class Player : MonoBehaviour {
 			);
 			return new Tuple<bool, Collider2D[]>(true, colliders);
 		}
-		else 
+		else
 		{
 			return new Tuple<bool, Collider2D[]>(false, colliders);
 		}
@@ -557,11 +563,11 @@ public class Player : MonoBehaviour {
 	}
 
 
-	void SetHingeJoints() 
+	void SetHingeJoints()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SetHingeJoints");
 
-		// https://forum.unity.com/threads/swinging-ninja-rope.227628/ 	
+		// https://forum.unity.com/threads/swinging-ninja-rope.227628/
 		// connect hinges between the player and the selected TetherPoint
 		hinge_A = gameObject.AddComponent<HingeJoint2D>(); // on the player
 		hinge_B = SwingPoint.AddComponent<HingeJoint2D>(); // on the tether
@@ -576,7 +582,7 @@ public class Player : MonoBehaviour {
 		lineRenderEndpoints = new Vector3[] { Utils.Vec3ToVec2(GetComponent<Transform>().position), SwingPoint.GetComponent<Transform>().position };
 	}
 
-	void SwingBegin() 
+	void SwingBegin()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SwingBegin");
 		LineRender.enabled = true;
@@ -586,7 +592,7 @@ public class Player : MonoBehaviour {
 
 	}
 
-	private IEnumerator SwingCoroutine() 
+	private IEnumerator SwingCoroutine()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SwingCoroutine");
 
@@ -596,7 +602,7 @@ public class Player : MonoBehaviour {
             // When swinging, handle with forces rather than by setting velocities
             SwingForce = Vector2.right * Input_.MoveX.Value * kSwingForce;
 			Debug.Log("Swing force: " + SwingForce + " Move: " + Input_.MoveX.Value + " " + Input_.MoveY.Value);
-            if (Input_.MoveY.Value != 0) 
+            if (Input_.MoveY.Value != 0)
             {
                 // Move the player closer to or further from the hinge
                 // Delay execution until next call to Update()
@@ -610,7 +616,7 @@ public class Player : MonoBehaviour {
 
                 // Add new hinge joints
 				SetRopeEndpoints();
-                SetHingeJoints(); 
+                SetHingeJoints();
             }
             else
             {
@@ -621,7 +627,7 @@ public class Player : MonoBehaviour {
 		yield return null;
 
 	}
-	private void SwingUpdate()	
+	private void SwingUpdate()
 	{
         if (PRINT_METHOD_CALL) Debug.Log("SwingUpdate");
 		SetRopeEndpoints();
@@ -642,9 +648,9 @@ public class Player : MonoBehaviour {
 
     //https://gist.github.com/jbroadway/b94b971d224332f9158988a66f35f22d
     //https://answers.unity.com/questions/546668/how-to-create-coroutine-delegates.html
-	void Start() 
+	void Start()
 	{
-        if (PRINT_METHOD_CALL) Debug.Log("Start");
+    if (PRINT_METHOD_CALL) Debug.Log("Start");
 
 		CachePlatforms();
 
@@ -654,24 +660,24 @@ public class Player : MonoBehaviour {
 		LineRender = GetComponent<LineRenderer>();
 		LineRender.enabled = false;
 
-        // Since our update methods are all of type void, pass them as delegates
-        // Pass coroutines as illustrated in the second link
+    // Since our update methods are all of type void, pass them as delegates
+    // Pass coroutines as illustrated in the second link
 
-        UDelegateFn dNormalUpdate = NormalUpdate, dNormalBegin = NormalBegin, dNormalEnd = NormalEnd;
+    UDelegateFn dNormalUpdate = NormalUpdate, dNormalBegin = NormalBegin, dNormalEnd = NormalEnd;
 		System.Action l_normalCoroutine = () => StartCoroutine(NormalCoroutine());
 		StateMachine.SetCallbacks(StNormal, dNormalUpdate, l_normalCoroutine, dNormalBegin, dNormalEnd);
 
-        UDelegateFn dClimbUpdate = ClimbUpdate, dClimbBegin = ClimbBegin, dClimbEnd = ClimbEnd;
+    UDelegateFn dClimbUpdate = ClimbUpdate, dClimbBegin = ClimbBegin, dClimbEnd = ClimbEnd;
 		System.Action l_climbCoroutine = () => StartCoroutine(ClimbCoroutine());
 		StateMachine.SetCallbacks(StClimb, dClimbUpdate, l_climbCoroutine, dClimbBegin, dClimbEnd);
 
-        UDelegateFn dDashUpdate = DashUpdate, dDashBegin = DashBegin, dDashEnd = DashEnd;
+    UDelegateFn dDashUpdate = DashUpdate, dDashBegin = DashBegin, dDashEnd = DashEnd;
 		System.Action l_dashCoroutine = () => StartCoroutine(DashCoroutine());
 		StateMachine.SetCallbacks(StDash, DashUpdate, l_dashCoroutine, DashBegin, DashEnd);
-		
-        UDelegateFn dSwingUpdate = SwingUpdate, dSwingBegin = SwingBegin, dSwingEnd = SwingEnd;
+
+    UDelegateFn dSwingUpdate = SwingUpdate, dSwingBegin = SwingBegin, dSwingEnd = SwingEnd;
 		System.Action l_swingCoroutine = () => StartCoroutine(SwingCoroutine());
-        StateMachine.SetCallbacks(StSwing, SwingUpdate, l_swingCoroutine, SwingBegin, SwingEnd);
+    StateMachine.SetCallbacks(StSwing, SwingUpdate, l_swingCoroutine, SwingBegin, SwingEnd);
 
 		UDelegateFn dSlideUpdate = SlideUpdate, dSlideBegin = SlideBegin, dSlideEnd = SlideEnd;
 		System.Action l_slideCoroutine = () => StartCoroutine(SlideCoroutine());
@@ -685,6 +691,7 @@ public class Player : MonoBehaviour {
 
 		StateMachine.State = StNormal;
 
+		Animator = GetComponent<Animator>();
 
 	}
 
@@ -695,7 +702,7 @@ public class Player : MonoBehaviour {
 	private const int PATHVIS_LAYER = 13;
 
 	private bool WallCheck()
-	{ 
+	{
         if (PRINT_METHOD_CALL) Debug.Log("WallCheck");
 
 		// Call this method after the physics update step
@@ -722,9 +729,9 @@ public class Player : MonoBehaviour {
 			}
 		}
 	}
-	
+
 	List<GameObject> pathRenderers = new List<GameObject>();
-	
+
 	public void ShowPaths()
 	{
 		// Erase all current line renderers
@@ -735,7 +742,7 @@ public class Player : MonoBehaviour {
 
 		// Get the current state of the platform graph
 		Dictionary<string, Dictionary<string, List<Path>>> di = Logger.platformGraph;
-		
+
 		// Differentiate between the added game objects
 		int count = 0;
 		foreach (string one in di.Keys)
@@ -769,5 +776,3 @@ public class Player : MonoBehaviour {
 
 
 }
-
-
