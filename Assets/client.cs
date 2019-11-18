@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Net.Sockets;
-using System.Text; 
+using System.Text;
 using System.IO;
 //using System.Diagnostics;
 using System.ComponentModel;
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-/*  
+/*
 public class CodeString
 {
     static TcpClient clientSocket = new TcpClient();
@@ -18,7 +18,7 @@ public class CodeString
     private static void Run() {
 
         string userCode = File.ReadAllText("test-addition/sample-solution.py");
-        
+
         clientSocket.Connect("127.0.0.1", 8888);
         NetworkStream serverStream = clientSocket.GetStream();
         byte[] outStream = Encoding.ASCII.GetBytes(userCode + "$");
@@ -35,6 +35,11 @@ public class CodeString
     }
 }
 */
+
+
+//////////////////////////////////////////////
+// I have absolutely no idea what this was for
+//////////////////////////////////////////////
 
 
 /* This will be the class utilized by the codepad */
@@ -72,8 +77,8 @@ public class client : MonoBehaviour {
 
 
     void Start() {
-        runButton.onClick.AddListener( delegate { 
-            Run(); 
+        runButton.onClick.AddListener( delegate {
+            Run();
         });
     }
 

@@ -9,7 +9,7 @@ public class Player : MonoBehaviour {
 	public Rigidbody2D rb;
 	public Camera mainCamera;
 
-	/* For debugging help */
+	// For debugging help
 	private int fixedUpdateCount = 0;
 
 	#region prefabs

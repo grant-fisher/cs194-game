@@ -6,7 +6,8 @@ using System;
 // ******************************************************************
 // StateMachine is responsible for tracking the current player state
 // ******************************************************************
-public class StateMachine {
+public class StateMachine
+{
 
     private Player player;
 
@@ -16,11 +17,14 @@ public class StateMachine {
     private const int END = 3;
 
     public int State;
-
     private int PrevState;
-    private Dictionary<int, StateStruct> callbacks; 
 
-    public class StateStruct 
+    // Key is the state, value is the StateStruct containing the callbacks
+    private Dictionary<int, StateStruct> callbacks;
+
+    // StateStruct
+    // Stores the callbacks as member variables
+    public class StateStruct
     {
         public UDelegateFn update, begin, end;
         public System.Action coroutine;
@@ -30,37 +34,41 @@ public class StateMachine {
         }
     }
 
-    public StateMachine(Player _player) 
+    // Create a new StateMachine for this player
+    public StateMachine(Player _player)
     {
         callbacks = new Dictionary<int, StateStruct>();
         this.player = _player;
     }
 
     // Add the callback functions for a new state to our callbacks dictioanry
-    public void SetCallbacks(int i, UDelegateFn update, System.Action coroutine, UDelegateFn begin, UDelegateFn end) 
+    public void SetCallbacks(int i, UDelegateFn update, System.Action coroutine, UDelegateFn begin, UDelegateFn end)
     {
         callbacks[i] = new StateStruct(update, coroutine, begin, end);
     }
 
-    public void Update() 
+    public void Update()
     {
-        // Check if the state has changed. If so, then execute end() and begin() of
-        // the previous and current states, respectively.
-        //Debug.Log(State + " " + PrevState);
-        if (State != PrevState) 
+        // If we've changed state, then end the previous state and begin the next state
+        if (State != PrevState)
         {
-            if (callbacks[PrevState].end != null) 
+            // End the previous state
+            if (callbacks[PrevState].end != null)
             {
-                callbacks[PrevState].end();        
+                callbacks[PrevState].end();
             }
+
+            // Update the state
             PrevState = State;
 
+            // Start the new state
             UDelegateFn begin = callbacks[State].begin;
             if (begin != null)
             {
                 begin();
             }
 
+            // If we have a coroutine, start it
             System.Action coroutine = callbacks[State].coroutine;
             if (coroutine != null)
             {
@@ -74,7 +82,7 @@ public class StateMachine {
             update();
         }
 
-        
+
     }
 
 

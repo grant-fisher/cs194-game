@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BuildPadButtons : MonoBehaviour {
+public class BuildPadButtons : MonoBehaviour
+{
 
 	public GameObject spriteA, spriteB;
 	public Button buttonA, buttonB, buttonC, buttonD;
@@ -15,18 +16,21 @@ public class BuildPadButtons : MonoBehaviour {
 	private int numAdded;
 
 	private int playerCredits; // Currency
-	private int tempSpent; 
+	private int tempSpent;
 
-	/* Method: AddSprite
-	 * -----------------
-	 */
-	void AddSprite(GameObject sprite, Vector3 position) {
-		if (tempSpent == playerCredits) {
+	// Add an instance of the sprite to the screen
+	void AddSprite(GameObject sprite, Vector3 position)
+	{
+		if (tempSpent == playerCredits)
+		{
 			Debug.Log("not enough money");
-		} else {
+		}
+
+		else
+		{
 			GameObject clone = Instantiate(sprite, new Vector3(position[0], position[1], 0.0f), Quaternion.identity) as GameObject;
 
-			/* Add rigidbody constraints */
+			// Don't allow the sprite to move
 			clone.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
 
 			tempAdded.Add(clone);
@@ -34,18 +38,14 @@ public class BuildPadButtons : MonoBehaviour {
 		}
 	}
 
-	/* Method: Checkout
-	 * ----------------
-	 * Update player assets and freeze changes.
-	 */
-	void Checkout() {
-
+	// Update player money and freeze changes
+	void Checkout()
+	{
 		playerCredits = playerCredits - tempSpent;
 		tempAdded = new List<GameObject>();
 		numAdded = 0;
 		tempSpent = 0;
 		spriteToAdd = null;
-
 	}
 
 
@@ -69,34 +69,34 @@ public class BuildPadButtons : MonoBehaviour {
 		spriteToAdd = null;
 		tempAdded = new List<GameObject>();
 
-		buttonA.onClick.AddListener(delegate { 
+		buttonA.onClick.AddListener(delegate {
 			if (addingSprites) {
 				spriteToAdd = spriteA;
 			}
 		});
 
-		buttonB.onClick.AddListener(delegate { 
+		buttonB.onClick.AddListener(delegate {
 			if (addingSprites) {
 				spriteToAdd = spriteB;
 			}
 		});
 
-		buttonC.onClick.AddListener(delegate { 
-			InitiateAddSprites();	
+		buttonC.onClick.AddListener(delegate {
+			InitiateAddSprites();
 		});
 
 		buttonD.onClick.AddListener(delegate {
 			CancelChanges();
 		});
 
-	
+
 
 	}
-	
+
 	/* Method: SortByZCoordinate
 	 * -------------------------
 	 * Comparator to sort a list of GameObjects by their Z coordinate, so that the one
-	 * with the most negative Z coordinate appears first in the sorted list, and the one with the 
+	 * with the most negative Z coordinate appears first in the sorted list, and the one with the
 	 * most positive Z coordinate appears last.
 	 */
 	private static int SortByZCoordinate(GameObject a, GameObject b) {
@@ -108,14 +108,15 @@ public class BuildPadButtons : MonoBehaviour {
 		} else {
 			return 1;
 		}
-			
+
 	}
-	
+
 	/* Method: Cancel Changes
 	 * ----------------------
 	 * Delete all temporary added sprites and restore user resources
 	 */
-	private void CancelChanges() {
+	private void CancelChanges()
+	{
 
 		addingSprites = false;
 		spriteToAdd = null;
@@ -125,13 +126,11 @@ public class BuildPadButtons : MonoBehaviour {
 			Destroy(tempAdded[i]);
 		}
 		tempAdded = new List<GameObject>();
-
 	}
 
 
-	
-	void Update () {
-		
+	void Update ()
+	{
 		if (Input.GetKeyUp(KeyCode.Alpha0) && addingSprites && spriteToAdd != null) {
 			Vector3 worldPoint = mainCamera.ScreenToWorldPoint(Input.mousePosition);
 			Vector3 viewportPoint = mainCamera.WorldToViewportPoint(worldPoint);

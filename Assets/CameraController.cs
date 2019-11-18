@@ -2,22 +2,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CameraController : MonoBehaviour {
+public class CameraController : MonoBehaviour
+{
 
 	public GameObject player;
 	private Transform transform;
 
-	/* Offset between player and camera */
-	private Vector3 offset; 
+	// Offset between the player and the camera
+	private Vector3 offset;
 
-	void Start () {
-		transform = GetComponent<Transform>(); 
+	void Start ()
+	{
+		transform = GetComponent<Transform>();
 		offset = transform.position - player.transform.position;
 	}
-	
-	/* Called after update during each frame. 
-	 * Keeps the offset constant between the player and the camera */
-	void LateUpdate() {
+
+	// Called after Update() during each frame
+	// Update transform position to keep a constant offset between the player and the camera
+	void LateUpdate()
+	{
 		transform.position = player.transform.position + offset;
 	}
 
